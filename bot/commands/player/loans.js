@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('@discordjs/builders');
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ActionRowBuilder } = require('discord.js');
 const { userCheck } = require('../../../backend/firestore/utility/user_check');
 const { getPlayer } = require('../../../backend/firestore/player/get_player');
 const { getLoans } = require('../../../backend/firestore/player/get_loans');
@@ -18,18 +18,90 @@ module.exports = {
 		const player = await getPlayer(user);
         const availableLoans = await getLoans(player);
 
-        const loansEmbed = new EmbedBuilder()
-            .setTitle(`${player.business.name}`)
-            .setDescription("Available Loans:")
-            availableLoans.forEach(loan => {
-                loansEmbed
-                    .addFields({ name: `${loan.name}`, value: `Loan Amount: ${loan.amt} Owed: x Payback Time: xx`})
-            })
+        const loanSelect = new StringSelectMenuBuilder()
+        .setCustomId('loanID')
+        .setPlaceholder('Take a loan.');
 
-        // make that pretty ^^
-        // add active loans embed that shows be default with loansEmbed
-        // or something idk cuz there gonna be buttons and shit or just show
-        // active loans in same embed idek
-		return interaction.reply({ embeds: [loansEmbed] });
+        const activeLoanSelect = new StringSelectMenuBuilder()
+        .setCustomId('activeLoanID')
+        .setPlaceholder('Pay a loan off.');
+
+        const loansEmbed = new EmbedBuilder()
+            .setTitle('Available Loans:');
+            //.setDescription("")
+            availableLoans.forEach(loan => {
+                loanSelect
+                    .addOptions(
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel(`${loan.name}`)
+                            .setDescription(`Amount: $${loan.amt} Payback: $${loan.owed} Time: ${loan.timeLimit} ${loan.timeLimit > 1 ? 'days' : 'day'}`)
+                            .setValue(`${loan.id}`)
+                    );
+                })
+        
+        const isActiveLoans = false;
+
+        const activeEmbed = new EmbedBuilder()
+            .setTitle('No Active Loans');
+
+        if(player.activeLoans.length > 0) isActiveLoans = true;
+
+        player.activeLoans.forEach(loan => {
+            activeLoanSelect
+                .addOptions(
+                    new StringSelectMenuOptionBuilder()
+                        .setLabel(`${loan}`)
+                        .setDescription(`Time Left: xx\nOwed: $xx`)
+                        .setValue(`${loan}MAKEID`) //FIX THISSSSS!!!!
+                );
+        });
+
+        
+
+        const row1 = new ActionRowBuilder()
+            .addComponents(loanSelect);
+
+        const row2 = new ActionRowBuilder()
+            .addComponents(activeLoanSelect);
+        
+        const firstReply = {
+            components: [row1]
+        }
+
+        if(isActiveLoans) {
+            firstReply.components.push(row2);
+        }
+        else {
+            firstReply.embeds = [activeEmbed];
+        }
+
+		const res = await interaction.reply(firstReply);
+
+        const loanFilter = i => {
+            i.user.id === user.id;
+        }
+
+        const loanCollector = res.createMessageComponentCollector({
+            filter: loanFilter,
+            time: 60000
+        });
+
+
+        const loanChoice = 'Error: Contact the boss and call him "The Boss"';
+        // needs timeout text and cancel option
+        loanCollector.on('collect', async selectInt => {
+            console.log(selectInt.values[0]);
+            const loanChoice = selectInt.values[0];
+            loanCollector.stop();
+        })
+
+        loanCollector.on('end', async () => {
+            console.log('end');
+            await res.edit({
+                content: `${loanChoice}`,
+                embeds: [],
+                components: []
+                });
+        })
 	},
 };
