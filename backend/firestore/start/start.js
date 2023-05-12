@@ -1,7 +1,7 @@
 const { doc, setDoc, getDoc } = require("@firebase/firestore");
 const { db } = require("../../firebase-config")
 
-const start = async (user) => {
+const start = async (user, businessName) => {
     const userRef = doc(db, 'users', user.id);
 
     const date = new Date();
@@ -10,22 +10,14 @@ const start = async (user) => {
         id: user.id,
         username: user.username,
         rank: 'player',
-        stats: {
-            health: 100,
-            stamina: 100,
-            hunger: 80,
-            thirst: 80
+        business: {
+            name: businessName,
+            type: 'LemonadeStand',
+            employees: 0,
+            shares: 100,
+            totalFunds: 0
         },
-        backpack: {
-            Water_Bottle: {
-                    weight: 'temp',
-                    thirst: 40,
-                    name: 'Water Bottle',
-                    id: 'Water_Bottle',
-                    amt: 1
-            }
-
-        }
+        activeLoans: []
     })
 }
 

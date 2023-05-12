@@ -6,12 +6,12 @@ const { getFirestore } = require("firebase/firestore");
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCCS7hnupRMAN7dE6wgfb2cEBYtqDz7V5g",
-  authDomain: "cord-exodus.firebaseapp.com",
-  projectId: "cord-exodus",
-  storageBucket: "cord-exodus.appspot.com",
-  messagingSenderId: "780238825763",
-  appId: "1:780238825763:web:74a06f1aaa88cf24380496"
+  apiKey: "AIzaSyA2il95YdNIVE-y4gZmdjXTQIFXDoZGFBE",
+  authDomain: "venture-fb6d8.firebaseapp.com",
+  projectId: "venture-fb6d8",
+  storageBucket: "venture-fb6d8.appspot.com",
+  messagingSenderId: "539490509501",
+  appId: "1:539490509501:web:704621c34f8eee8d418dd4"
 };
 
 // Initialize Firebase
