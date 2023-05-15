@@ -1,7 +1,9 @@
 const { collection, getDocs, doc, getDoc } = require("firebase/firestore")
 const { db } = require("../../firebase-config")
 
-const getLoans = async (player) => {
+const getLoans = async (user) => {
+    const player = user.player;
+
     const loansColl = collection(db, 'loans');
     const loansSnap = await getDocs(loansColl);
 
@@ -11,8 +13,8 @@ const getLoans = async (player) => {
     loansSnap.forEach(doc => {
         if(doc.data().minFunds <= player.business.totalFunds) {
             let canAdd = true;
-            player.activeLoans.forEach(loanID => {
-                if(loanID === doc.data().id) {
+            player.activeLoans.forEach(loan => {
+                if(loan.id === doc.data().id) {
                     canAdd = false;
                 }
             })

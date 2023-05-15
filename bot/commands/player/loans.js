@@ -3,6 +3,7 @@ const { SlashCommandBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuil
 const { userCheck } = require('../../../backend/firestore/utility/user_check');
 const { getPlayer } = require('../../../backend/firestore/player/get_player');
 const { getLoans } = require('../../../backend/firestore/player/get_loans');
+const { applyLoan } = require('../../../backend/firestore/utility/apply_loan');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,20 +16,21 @@ module.exports = {
 			return interaction.reply("Broke boy doesn't own a business, try /start");
 		}
 
-		const player = await getPlayer(user);
-        const availableLoans = await getLoans(player);
+		user.player = await getPlayer(user);
+        const availableLoans = await getLoans(user);
 
         const loanSelect = new StringSelectMenuBuilder()
-        .setCustomId('loanID')
+        .setCustomId('availableLoanID')
         .setPlaceholder('Take a loan.');
 
         const activeLoanSelect = new StringSelectMenuBuilder()
         .setCustomId('activeLoanID')
         .setPlaceholder('Pay a loan off.');
 
-        const loansEmbed = new EmbedBuilder()
+        /*const loansEmbed = new EmbedBuilder()
             .setTitle('Available Loans:');
-            //.setDescription("")
+            //.setDescription("")*/
+        
             availableLoans.forEach(loan => {
                 loanSelect
                     .addOptions(
@@ -38,25 +40,28 @@ module.exports = {
                             .setValue(`${loan.id}`)
                     );
                 })
-        
-        const isActiveLoans = false;
+
+        let isActiveLoans = false;
+        let isAvailableLoans = false;
 
         const activeEmbed = new EmbedBuilder()
             .setTitle('No Active Loans');
 
-        if(player.activeLoans.length > 0) isActiveLoans = true;
+        const availableEmbed = new EmbedBuilder()
+            .setTitle('No Available Loans');
 
-        player.activeLoans.forEach(loan => {
+        if(availableLoans.length > 0) isAvailableLoans = true;
+        if(user.player.activeLoans.length > 0) isActiveLoans = true;
+
+        user.player.activeLoans.forEach(loan => {
             activeLoanSelect
                 .addOptions(
                     new StringSelectMenuOptionBuilder()
-                        .setLabel(`${loan}`)
+                        .setLabel(`${loan.name}`)
                         .setDescription(`Time Left: xx\nOwed: $xx`)
-                        .setValue(`${loan}MAKEID`) //FIX THISSSSS!!!!
+                        .setValue(`${loan.id}`)
                 );
         });
-
-        
 
         const row1 = new ActionRowBuilder()
             .addComponents(loanSelect);
@@ -64,21 +69,33 @@ module.exports = {
         const row2 = new ActionRowBuilder()
             .addComponents(activeLoanSelect);
         
+        // init firstReply
         const firstReply = {
-            components: [row1]
+            components: [],
+            embeds: []
         }
 
+        // adds available loans if they exist or adds no available loans embed
+        if(isAvailableLoans) {
+            firstReply.components.push(row1);
+        }
+        else {
+            firstReply.embeds.push(availableEmbed);
+        }
+
+
+        // adds active loans if they exist or adds no active loans embed
         if(isActiveLoans) {
             firstReply.components.push(row2);
         }
         else {
-            firstReply.embeds = [activeEmbed];
+            firstReply.embeds.push(activeEmbed);
         }
 
 		const res = await interaction.reply(firstReply);
 
         const loanFilter = i => {
-            i.user.id === user.id;
+            return i.user.id == user.id;
         }
 
         const loanCollector = res.createMessageComponentCollector({
@@ -86,19 +103,41 @@ module.exports = {
             time: 60000
         });
 
-
-        const loanChoice = 'Error: Contact the boss and call him "The Boss"';
-        // needs timeout text and cancel option
+        // this is defaulted to error message
+        let loanChoice = 'Error: Contact the boss and call him "The Boss"';
+        // needs cancel option and checks if any loans expired
         loanCollector.on('collect', async selectInt => {
-            console.log(selectInt.values[0]);
-            const loanChoice = selectInt.values[0];
-            loanCollector.stop();
+            loanChoice = selectInt.values[0];
+            loanCollector.stop(false);
         })
 
-        loanCollector.on('end', async () => {
-            console.log('end');
+        loanCollector.on('end', async (collected, reason) => {
+            console.log(collected);
+            if(reason === 'time') {
+                await res.edit({
+                    content: "The loan office doesn't have all day",
+                    embeds: [],
+                    components: []
+                })
+            }
+
+            if(collected.customId === 'availableLoanID') {
+                const loanData = availableLoans.find(loan => loan.id === loanChoice);
+                if(!await applyLoan(loanData, user)) {
+                    await res.edit({
+                        content: 'Error: Contact the boss and call him "The Boss"',
+                        embeds: [],
+                        components: []
+                        });
+                }
+            }
+            else if(collected.customId === 'activeLoanID') {
+
+            }
+
+            // make the reply a variable based on available or active
             await res.edit({
-                content: `${loanChoice}`,
+                content: `${loanData.name} will be credited to your account. Check your active loans!`,
                 embeds: [],
                 components: []
                 });

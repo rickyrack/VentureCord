@@ -14,15 +14,15 @@ module.exports = {
 			return interaction.reply("Broke boy doesn't own a business, try /start");
 		}
 
-		const player = await getPlayer(user);
+		user.player = await getPlayer(user);
 
         const statsEmbed = new EmbedBuilder()
-            .setTitle(`${player.business.name}`)
+            .setTitle(`${user.player.business.name}`)
             .setDescription("Not bad, not great.")
             .addFields(
-                { name: 'Total Funds:', value: `$${player.business.totalFunds}` },
-                { name: 'Employees:', value: `${player.business.employees}` },
-                { name: 'Shares:', value: `${player.business.shares}%`}
+                { name: 'Total Funds:', value: `$${user.player.business.totalFunds}` },
+                { name: 'Employees:', value: `${user.player.business.employees}` },
+                { name: 'Shares:', value: `${user.player.business.shares}%`}
             )
 		return interaction.reply({ embeds: [statsEmbed] });
 	},
